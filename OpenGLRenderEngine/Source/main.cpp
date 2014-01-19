@@ -38,7 +38,7 @@ class MainScreen : public ScreenSDLGL
 
 		  static float theta = 0.0f;
 		  glm::mat4 modelMatrix = glm::rotate(glm::mat4(), theta, glm::vec3(0.0f,1.0f,0.0f));
-		  glm::mat4 viewMatrix = glm::lookAt(glm::vec3(0,0,20), glm::vec3(0,0,0), glm::vec3(0,1,0));
+		  glm::mat4 viewMatrix = glm::lookAt(glm::vec3(0,0,5), glm::vec3(0,0,0), glm::vec3(0,1,0));
 		  glm::mat4 projectionMatrix = glm::perspective<float>(45.0f, float(winWidth)/float(winHeight), 1.0f, 100.0f);
 		  glm::mat4 projModelViewMatrix = projectionMatrix * viewMatrix * modelMatrix;
 
@@ -105,7 +105,7 @@ int main( int argc, char *argv[] )
 	AssimpMeshFileReader reader;
 	MeshFileData mfd;
 	glm::mat4 originMatrix = glm::rotate(glm::mat4(), -90.0f, glm::vec3(1.0f,0.0f,0.0f));
-	reader.load("tifa.3ds", mfd, glm::value_ptr(originMatrix));
+	reader.load("cube.3ds", mfd, glm::value_ptr(originMatrix));
 
 	for(unsigned int i=0; i<mfd.m_materialData.size(); i++)
 	{

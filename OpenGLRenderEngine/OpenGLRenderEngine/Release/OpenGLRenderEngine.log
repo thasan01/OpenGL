@@ -1,4 +1,4 @@
-﻿Build started 1/19/2014 12:52:55 AM.
+﻿Build started 1/19/2014 11:50:09 AM.
      1>Project "C:\Users\Raiyan\Documents\Visual Studio 2010\Projects\CPlusPlus\OpenGL\OpenGLRenderEngine\OpenGLRenderEngine\OpenGLRenderEngine.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
          Creating "Release\OpenGLRenderEngine.unsuccessfulbuild" because "AlwaysCreate" was specified.
@@ -29,4 +29,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:04.27
+Time Elapsed 00:00:03.81
