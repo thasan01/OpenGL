@@ -38,3 +38,5 @@ typedef void* DataType;
 	vector<unsigned int> m_dataArraySize; 
 	vector<void*> m_data;
   };
+
+

@@ -12,10 +12,22 @@
 #include "ShaderGL.h"
 #include "MaterialGL.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
+
+//Class Prototypes
+class Skeleton;
+class Animation;
+struct AnimationComponent;
+
 	class VertexBufferObject
 	{
 		public:
-		enum Type{VERTEX_BUFFER=0, NORMAL_BUFFER=1, TEXTCOORD_BUFFER=2, COLOR_BUFFER=3};
+		enum Type{VERTEX_BUFFER=0, NORMAL_BUFFER=1, TEXTCOORD_BUFFER=2, BONE_BUFFER=3};
 
 		VertexBufferObject(Type bufferType, unsigned int bufferArraySize, const DataType bufferArray);
 		virtual ~VertexBufferObject();
@@ -62,6 +74,8 @@
 							const shared_ptr<IndexBufferObject>& ptrIBO);
 		virtual ~VertexArrayObject();
 
+
+		void addVBO(const shared_ptr<VertexBufferObject>& ptrVBO);
 		virtual void render(unsigned int renderType = GL_TRIANGLES);
 
 		inline VertexBufferObject& getVBO(unsigned int n) { return *m_ptrVBO[n]; }
@@ -107,7 +121,7 @@
 		public:
 		MeshGL(const MeshData& meshData, const vector<MaterialData>& materialDataList);
 		MeshGL(const string& meshName, const MeshFileData& meshFileData);
-		virtual ~MeshGL();
+		~MeshGL();
 
 		const string& getName() const { return m_name; }
 
@@ -124,4 +138,47 @@
 		vector<unsigned int>			m_matIndexList;
 		vector<VertexArrayObject*>		m_vaoList;
 		vector<shared_ptr<MaterialGL>>	m_materialList; 
+		friend class AnimatedMeshGL;
 	};
+
+	class BoneVertex
+	{
+		public:
+		#define MAX_BONES_PER_VERTEX 4
+
+		BoneVertex();
+		void addBone(unsigned int boneID, float boneBias);
+
+		int m_boneID[MAX_BONES_PER_VERTEX];
+		float m_boneWeight[MAX_BONES_PER_VERTEX];
+	};
+
+
+	class AnimatedMeshGL
+	{
+		public:
+		AnimatedMeshGL(const MeshData& meshData, const vector<MaterialData>& materialDataList);		
+		~AnimatedMeshGL();
+
+		void render(const SceneShaderInfo& shaderInfo, shared_ptr<ShaderProgramGL>& shaderProgram) const;
+
+		unsigned int getBoneCount() const { return m_boneFinalTransform.size(); }
+		
+		void getBoneTransformation(double timeEllasped, const Skeleton& skeleton, AnimationComponent& animComponent, vector<glm::mat4>& finalTransformList);
+		void transformBone(unsigned int boneID, const glm::mat4& parentTransform, const Skeleton& skeleton, const AnimationComponent& animComponent);
+
+		protected:
+/*
+		const string					m_name;
+		vector<unsigned int>			m_matIndexList;
+		vector<VertexArrayObject*>		m_vaoList;
+		vector<shared_ptr<MaterialGL>>	m_materialList; 
+//*/
+		shared_ptr<MeshGL> m_ptrMesh;
+
+		vector<BoneData>		m_bone;
+		map<string,unsigned int> m_boneNameToIndex;
+		vector<glm::mat4> m_boneFinalTransform;
+
+	};
+

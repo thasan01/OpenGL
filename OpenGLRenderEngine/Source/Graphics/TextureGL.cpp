@@ -1,3 +1,4 @@
+#include "../Globals.h"
 #include "TextureGL.h"
 #include <FreeImage\Dist\FreeImage.h>
 
@@ -46,6 +47,7 @@
 	//FreeImage_FlipHorizontal(dib);
 	//FreeImage_FlipVertical(dib);
 
+
 	if ( FreeImage_GetBPP( dib ) != 32 )
 	{
 		FIBITMAP* oldImage = dib;
@@ -58,6 +60,7 @@
 	//get the image width and height
 	unsigned int width = FreeImage_GetWidth(dib);
 	unsigned int height = FreeImage_GetHeight(dib);
+
 	//if this somehow one of these failed (they shouldn't), return failure
 	if((bits == 0) || (width == 0) || (height == 0))
 	{
