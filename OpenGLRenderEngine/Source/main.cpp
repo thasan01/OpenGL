@@ -1,15 +1,25 @@
-#include "Globals.h"
+#include "main.h"
+
+FrameBufferObjectGL*  fbo;
+RenderBufferObjectGL* dbo;
+RenderBufferObjectGL* rboList[RENDER_BUFFER_COUNT];
 
 SceneShaderInfo skinShaderInfo;
 SceneShaderInfo sceneShaderInfo;
 
 LightGL* ptrLight;
-shared_ptr<ShaderProgramGL> sceneShaderProgram;
-shared_ptr<ShaderProgramGL> skinShaderProgram;
+
+shared_ptr<ShaderProgramGL> shaderProgramList[SHADER_PROGRAM_COUNT];
+shared_ptr<ShaderBlockGL> shaderBlockList[SHADER_BLOCK_COUNT];
+
 shared_ptr<MeshGL> mesh;
 shared_ptr<AnimatedMeshGL> animMesh;
 
 unsigned int winWidth = 640, winHeight = 480;
+
+unsigned int squareVBOIDList[1];
+unsigned int squareVAOID;
+
 
 void InitGL()
 {
@@ -25,6 +35,49 @@ void InitGL()
 	glEnable(GL_TEXTURE_2D);
 }
 
+void InitSquare()
+{
+	unsigned int maxVertices = 4;
+	Vertex3 vertList[] =  { -1.0f,1.0f,0.0, 
+							-1.0f,-1.0f,0.0f,
+							 1.0f,-1.0f,0.0f,
+							 1.0f, 1.0f,0.0f };
+
+	//create vbo(s)
+	glGenBuffers(1, squareVBOIDList);
+	glBindBuffer(GL_ARRAY_BUFFER, squareVBOIDList[0]);
+	glBufferData(GL_ARRAY_BUFFER, maxVertices * 3 * sizeof(float), vertList, GL_STATIC_DRAW);
+
+	//create voa
+	glGenVertexArrays(1, &squareVAOID);
+	glBindVertexArray(squareVAOID);
+
+	glEnableVertexAttribArray(0);
+
+	for(int i=1; i<10; i++)
+		glDisableVertexAttribArray(i);
+
+	glBindBuffer(GL_ARRAY_BUFFER, squareVBOIDList[0]);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+	//unbind vao
+	glBindVertexArray(0);
+	//unbind the buffer
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void RenderSquare()
+{
+	glBindVertexArray(squareVAOID);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+	glBindVertexArray(0);
+}
+
+void DeleteSquare()
+{
+	glDeleteVertexArrays(1, &squareVAOID);
+	glDeleteBuffers(1, squareVBOIDList);
+}
 
 class MainScreen : public ScreenSDLGL
 {
@@ -33,24 +86,45 @@ class MainScreen : public ScreenSDLGL
 
 	  virtual void onRender()
 	  {
+		  bool renderBloom = true;
+		  auto& sceneShaderProgram		= shaderProgramList[SCENE_SHADER_ID];
+		  auto& screenShaderProgram		= shaderProgramList[SCREEN_SHADER_ID];
+		  auto& thresholdShaderProgram	= shaderProgramList[THRESHOLD_SHADER_ID];
+		  auto& blurShaderProgram		= shaderProgramList[BLUR_SHADER_ID];
+		  auto& combineShaderProgram	= shaderProgramList[COMBINE_SHADER_ID];
+		  auto& skinShaderProgram		= shaderProgramList[SKIN_SHADER_ID];
+		  auto& shaderQuadBlock			= shaderBlockList[QUAD_BLOCK_ID];
+
+
+		  //Render to Scene texture
+		  fbo->bind();	
+		  fbo->swap(*rboList[0]);
+
 		  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		  glEnable(GL_DEPTH_TEST);
+
+		  float pixelSize[2] = { (1.0f/winWidth), (1.0f/winHeight) };
+		  shaderQuadBlock->setVariableValue("pixelSize", pixelSize);
 
 
 		  glm::mat4 modelMatrix;
 		  modelMatrix = glm::translate(modelMatrix, glm::vec3(0,0,-50));
 		  modelMatrix = glm::scale(modelMatrix, glm::vec3(100,100,1));
-		  modelMatrix = glm::rotate(modelMatrix, -90.0f, glm::vec3(1.0f,0.0f,0.0f));
-		  
+		  modelMatrix = glm::rotate(modelMatrix, -90.0f, glm::vec3(1.0f,0.0f,0.0f));		  
+
 		  glm::mat4 viewMatrix = glm::lookAt(glm::vec3(0,0,100), glm::vec3(0,0,0), glm::vec3(0,1,0));
 		  glm::mat4 projectionMatrix = glm::perspective<float>(45.0f, float(winWidth)/float(winHeight), 1.0f, 1000.0f);
 		  glm::mat4 projModelViewMatrix = projectionMatrix * viewMatrix * modelMatrix;
+		  glm::mat3 normalMatrix =  glm::inverseTranspose(glm::mat3(modelMatrix));
+
 
 		  sceneShaderProgram->bind();
 		  sceneShaderProgram->setVariableMatrix4f(sceneShaderInfo.m_modelMatrixLocation, glm::value_ptr(modelMatrix));
 		  sceneShaderProgram->setVariableMatrix4f(sceneShaderInfo.m_projModelViewMatrixLocation, glm::value_ptr(projModelViewMatrix));
+		  sceneShaderProgram->setVariableMatrix3f(sceneShaderInfo.m_normalMatrixLocation, glm::value_ptr(normalMatrix));
+
 		  ptrLight->bind(sceneShaderInfo, *sceneShaderProgram);
 		  mesh->render(sceneShaderInfo, sceneShaderProgram);
-
 
 		  modelMatrix = glm::mat4();
 		  modelMatrix = glm::translate(modelMatrix, glm::vec3(0,-20,0));
@@ -65,24 +139,69 @@ class MainScreen : public ScreenSDLGL
 		  skinShaderProgram->setVariableMatrix4f(skinShaderInfo.m_projModelViewMatrixLocation, glm::value_ptr(projModelViewMatrix));
 		  ptrLight->bind(skinShaderInfo, *skinShaderProgram);
 		  animMesh->render(skinShaderInfo, skinShaderProgram);
+
+		bool turn = true;
+		if(renderBloom)
+		{
+			glDisable(GL_DEPTH_TEST);
+
+			//Extract scene intensity
+			fbo->swap(*rboList[1]);
+			thresholdShaderProgram->bind();
+			thresholdShaderProgram->bindShaderBlock(*shaderQuadBlock);
+
+			glBindTexture(GL_TEXTURE_2D, rboList[0]->getBufferID());
+			RenderSquare();
+			thresholdShaderProgram->unbind();
+
+			//Blur scene
+			glActiveTexture(GL_TEXTURE0);
+
+			blurShaderProgram->bind();
+			blurShaderProgram->bindShaderBlock(*shaderQuadBlock);
+			for(int i=0; i<10; i++)
+			{
+				fbo->swap(turn ? *rboList[2] : *rboList[3]);
+		
+				if(i==0)
+					glBindTexture(GL_TEXTURE_2D, rboList[1]->getBufferID());
+				else
+					glBindTexture(GL_TEXTURE_2D, turn ? rboList[3]->getBufferID() : rboList[2]->getBufferID());
+
+				blurShaderProgram->setVariableInteger(blurShaderProgram->getVariableLocation("isVertical"), int(turn));
+				RenderSquare();
+				turn = !turn;
+			}
+			blurShaderProgram->unbind();
+		}
+		fbo->unbind();
+
+		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+		if(renderBloom)
+		{
+			combineShaderProgram->bind();
+			combineShaderProgram->bindShaderBlock(*shaderQuadBlock);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, rboList[0]->getBufferID());
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, (turn ? rboList[2] : rboList[3])->getBufferID());
+		}
+		else
+		{
+			screenShaderProgram->bind();
+			screenShaderProgram->bindShaderBlock(*shaderQuadBlock);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, rboList[0]->getBufferID() );
+		}
+
+		RenderSquare();
+		combineShaderProgram->unbind();
 	  }
 
 };
 
-SceneShaderInfo InitShaderInfo(const ShaderProgramGL& program)
-{
-	return SceneShaderInfo(	program.getVariableLocation("modelMatrix"),
-							program.getVariableLocation("projModelViewMatrix"),
-							program.getVariableLocation("normalMatrix"),
-							program.getVariableLocation("materialAmbient"),
-							program.getVariableLocation("materialDiffuse"),
-							program.getVariableLocation("materialSpecular"), 
-							program.getVariableLocation("materialShininess"),
-							program.getVariableLocation("lightAmbient"), 
-							program.getVariableLocation("lightDiffuse"), 
-							program.getVariableLocation("lightSpecular"),
-							program.getVariableLocation("lightPosition"));
-}
 
 void PostProcessMeshFileData(MeshFileData& mfd)
 {
@@ -111,6 +230,8 @@ void PostProcessMeshFileData(MeshFileData& mfd)
 	}
 }
 
+
+
 int main( int argc, char *argv[] )
 {
 	fileLogger.open("game.log");
@@ -119,48 +240,16 @@ int main( int argc, char *argv[] )
 
 	MainScreen screen(*window.getSDLWindow());
 	InitGL();
+	InitSquare();
 
-	#ifdef _WIN32 //
+
+	#ifdef _WIN32
 		stringstream ss;
 		ss << "major: " << screen.getMajorVersion() << " minor: " << screen.getMinorVersion() << endl;
 		OutputDebugString(ss.str().data());
 	#endif
 
-	{
-		vector<shared_ptr<ShaderGL>> vertexShaderList;
-		vector<shared_ptr<ShaderGL>> fragmentShaderList;
-		vector<string> attributeNameList;
-
-		vertexShaderList.push_back(graphics.createShader(ShaderGL::VERTEX_SHADER, "../Data/Shader/sceneShader.vert"));
-		fragmentShaderList.push_back(graphics.createShader(ShaderGL::FRAGMENT_SHADER, "../Data/Shader/sceneShader.frag"));
-
-		attributeNameList.push_back("in_position");
-		attributeNameList.push_back("in_normal");
-		attributeNameList.push_back("in_textCoord");
-
-		sceneShaderProgram = graphics.createShaderProgram("sceneShader", attributeNameList, vertexShaderList, fragmentShaderList);
-		sceneShaderProgram->bind();
-		sceneShaderProgram->setVariableInteger(sceneShaderProgram->getVariableLocation("textureUnit1"), 0);
-		sceneShaderInfo = InitShaderInfo(*sceneShaderProgram);
-	}
-
-	{
-		vector<shared_ptr<ShaderGL>> vertexShaderList;
-		vector<shared_ptr<ShaderGL>> fragmentShaderList;
-		vector<string> attributeNameList;
-
-		vertexShaderList.push_back(graphics.createShader(ShaderGL::VERTEX_SHADER, "../Data/Shader/skinningShader.vert"));
-		fragmentShaderList.push_back(graphics.createShader(ShaderGL::FRAGMENT_SHADER, "../Data/Shader/sceneShader.frag"));
-
-		attributeNameList.push_back("in_position");
-		attributeNameList.push_back("in_normal");
-		attributeNameList.push_back("in_textCoord");
-
-		skinShaderProgram = graphics.createShaderProgram("skinShader", attributeNameList, vertexShaderList, fragmentShaderList);
-		skinShaderProgram->bind();
-		skinShaderProgram->setVariableInteger(skinShaderProgram->getVariableLocation("textureUnit1"), 0);
-		skinShaderInfo = InitShaderInfo(*skinShaderProgram);
-	}
+	InitShaders();
 
 	float ambient[]  = { 0.1f, 0.1f, 0.1f, 1.0f };
 	float diffuse[]  = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -194,20 +283,24 @@ int main( int argc, char *argv[] )
 		return false;
 	}
 
-
-	AnimationComponent animComp;
-	animComp.m_animationIndex=0;
-	animComp.m_startFrameIndex=0;
-	animComp.m_endFrameIndex=0;
-	animComp.m_remainingTime=0.0;
+	AnimationComponent animComp(0,0);
 
 	//Main loop flag 
 	bool bQuit = false; 
 	SDL_Event event;
 
 	vector<glm::mat4> boneTransform(animMesh->getBoneCount());
+	auto& skinShaderProgram	= shaderProgramList[SKIN_SHADER_ID];
 	unsigned int initBoneMatrixLocation = skinShaderProgram->getVariableLocation("boneMatrix[0]");
 	unsigned int initMilliSecTime = SDL_GetTicks();
+
+	fbo = new FrameBufferObjectGL();
+	dbo = new RenderBufferObjectGL(winWidth, winHeight, true);
+	for(unsigned int i=0; i<RENDER_BUFFER_COUNT; i++)
+		rboList[i] = new RenderBufferObjectGL(winWidth, winHeight, false);
+
+	fbo->attach(*rboList[0]);
+	fbo->attach(*dbo);
 
 	while(!bQuit) 
 	{	
@@ -235,6 +328,7 @@ int main( int argc, char *argv[] )
 		unsigned int currentMilliSecTime = SDL_GetTicks();
 		double timeEllasped = double(currentMilliSecTime - initMilliSecTime)/ 1000.0f;
 
+		skinShaderProgram->bind();
 		animMesh->getBoneTransformation(timeEllasped, *ptrSkeleton, animComp, boneTransform);
 		for(unsigned int i=0, max = animMesh->getBoneCount(); i<max; i++)
 			skinShaderProgram->setVariableMatrix4f(initBoneMatrixLocation + i, glm::value_ptr(boneTransform[i]));			
@@ -242,15 +336,26 @@ int main( int argc, char *argv[] )
 		screen.render(*window.getSDLWindow());
 	}
 
-	if(sceneShaderProgram)
-		graphics.releaseShaderProgram(sceneShaderProgram);
+	for(unsigned int i=0; i<SHADER_PROGRAM_COUNT; i++)
+	{
+		if(shaderProgramList[i])
+			graphics.releaseShaderProgram(shaderProgramList[i]);
+	}
+
+	DeleteSquare();
 
 	if(mesh)
 		graphics.releaseMesh(mesh);
 
+	delete fbo;
+	delete dbo;
+	for(unsigned int i=0; i<RENDER_BUFFER_COUNT; i++)
+		delete rboList[i];
+
 
 	delete ptrLight;
-	//delete ptrSkeleton;
+	delete ptrSkeleton;
+
 	animMesh.reset();
 
 

@@ -93,6 +93,7 @@ class Skeleton
 
 struct AnimationComponent
 {
+	AnimationComponent(unsigned int animationIndex, unsigned int startFrameIndex);
 	unsigned int m_animationIndex;
 	unsigned int m_startFrameIndex;
 	unsigned int m_endFrameIndex;

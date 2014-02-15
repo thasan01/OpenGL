@@ -6,6 +6,7 @@
 #include "MaterialGL.h"
 #include "MeshGL.h"
 #include "LightGL.h"
+#include "FrameBufferObjectGL.h"
 
 class GraphicsGL
 {

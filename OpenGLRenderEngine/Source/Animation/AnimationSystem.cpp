@@ -79,3 +79,11 @@ Skeleton::Skeleton(const SkeletonData& skeletonData)
 		m_animation.push_back(Animation(skeletonData.m_animation[i]));
 
 }
+
+//===================================
+// AnimationComponent
+//===================================
+AnimationComponent::AnimationComponent(unsigned int animationIndex, unsigned int startFrameIndex)
+	: m_animationIndex(animationIndex), m_startFrameIndex(startFrameIndex)
+{
+}

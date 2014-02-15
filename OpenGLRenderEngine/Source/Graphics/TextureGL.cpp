@@ -43,11 +43,6 @@
 	if(!dib)
 		return 0;
 
-	//dib = FreeImage_Rotate( dib, 90.0);
-	//FreeImage_FlipHorizontal(dib);
-	//FreeImage_FlipVertical(dib);
-
-
 	if ( FreeImage_GetBPP( dib ) != 32 )
 	{
 		FIBITMAP* oldImage = dib;

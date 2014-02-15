@@ -47,6 +47,15 @@
 
 
 
+
+//**************************************************
+//	ShaderVariable
+//**************************************************
+  ShaderVariableGL::ShaderVariableGL(const string& name, unsigned int byteSize, const void* source)
+	:m_name(name), m_byteSize(byteSize), m_source(source)
+  {
+  }
+
 //======================================
 // ShaderGL
 //======================================
@@ -67,14 +76,118 @@
 	  return true;
   }
 
-//======================================
-// ShaderGL
-//======================================
-
 
 //======================================
 // ShaderBlockGL
 //======================================
+
+  ShaderBlockGL::ShaderBlockGL(ShaderProgramGL& shaderProgram, const string& blockName, const vector<ShaderVariableGL>& variableList)
+	  :m_blockName(blockName), m_variableIndex(variableList.size()), m_variableOffset(variableList.size()), m_variableByteSize(variableList.size())
+  {
+	unsigned int programID = shaderProgram.getProgramID();
+	GLint blockSize;
+	m_blockID = glGetUniformBlockIndex(programID, blockName.data());
+
+	if(m_blockID == GL_INVALID_INDEX)
+		throw exception("error");
+
+	glGetActiveUniformBlockiv(programID, m_blockID, GL_UNIFORM_BLOCK_DATA_SIZE, &blockSize);
+	if(blockSize == GL_INVALID_ENUM)
+		throw exception("error");
+
+	GLubyte* blockBuffer= (GLubyte *) malloc(blockSize);	
+
+	unsigned int maxVariables = variableList.size(); 
+
+	GLchar **var_names = new GLchar*[maxVariables];
+	for(unsigned int i=0; i<maxVariables; i++)
+	{
+		var_names[i] = new GLchar[255];
+		string newName = blockName + "." +variableList[i].m_name;
+		memcpy ( var_names[i], newName.data(), strlen(newName.data())+1 );
+	}
+	glGetUniformIndices(programID, maxVariables, (const GLchar**)var_names, &m_variableIndex[0]);
+
+
+	glGetActiveUniformsiv(programID, maxVariables, &m_variableIndex[0], GL_UNIFORM_OFFSET, &m_variableOffset[0]);
+//*
+	for(unsigned int i=0; i<maxVariables; i++)
+	{
+		m_nameToIndex[variableList[i].m_name] = i;
+		m_variableByteSize[i] = variableList[i].m_byteSize;
+		memcpy(blockBuffer + m_variableOffset[i], variableList[i].m_source, variableList[i].m_byteSize);
+	}
+//*/
+	glGenBuffers( 1, &m_bufferObjectID );
+	glBindBuffer( GL_UNIFORM_BUFFER, m_bufferObjectID );
+	glBufferData( GL_UNIFORM_BUFFER, blockSize, blockBuffer, GL_DYNAMIC_DRAW );
+
+
+	shaderProgram.addShaderBlock(*this);
+
+	for(unsigned int i=0; i<maxVariables; i++)
+		delete var_names[i];
+	delete[] var_names;
+
+
+	free(blockBuffer);
+//	*/
+  }
+
+  ShaderBlockGL::~ShaderBlockGL()
+  {
+	glDeleteBuffers(1, &m_bufferObjectID);
+  }
+
+  bool ShaderBlockGL::setVariableValue(const string& variableName, const void* variableSource)
+  {
+	  map<string, unsigned int>::iterator iter = m_nameToIndex.find(variableName);
+	  if(iter != m_nameToIndex.end())
+	  {
+		unsigned int& index = iter->second;
+		glBindBuffer(GL_UNIFORM_BUFFER, m_bufferObjectID);
+		glBufferSubData(GL_UNIFORM_BUFFER, m_variableOffset[index], m_variableByteSize[index], variableSource);
+		return true;
+	  }
+	  return false;
+  }
+
+  bool ShaderBlockGL::setVariableValue(unsigned int locationID, unsigned int byteSize, const void* variableSource)
+  {
+		glBindBuffer(GL_UNIFORM_BUFFER, m_bufferObjectID);
+		glBufferSubData(GL_UNIFORM_BUFFER, locationID, byteSize, variableSource);
+		return true;
+  }
+
+
+  bool ShaderBlockGL::getVariableValue(const string& variableName, void* variableSource)
+  {
+	  map<string, unsigned int>::iterator iter = m_nameToIndex.find(variableName);
+	  if(iter != m_nameToIndex.end())
+	  {
+		  unsigned int index = iter->second;
+		  glGetBufferSubData( GL_UNIFORM_BUFFER, m_variableOffset[index], m_variableByteSize[index], variableSource );
+		  return true;
+	  }
+	  return false;
+  }
+
+  bool ShaderBlockGL::getVariableValue(unsigned int locationID, unsigned int byteSize, void* variableSource)
+  {
+	glGetBufferSubData( GL_UNIFORM_BUFFER, locationID, byteSize, variableSource );
+	return true;
+  }
+
+  bool ShaderBlockGL::getVariableLocation(const string& variableName, unsigned int& locationID) const
+  {
+	  map<string, unsigned int>::const_iterator iter = m_nameToIndex.find(variableName);
+	  if(iter != m_nameToIndex.end())
+	  {
+		  locationID = iter->second;
+		  return true;
+	  }
+	  return false;
+  }
 
 
 
