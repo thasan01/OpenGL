@@ -7,6 +7,7 @@
 #include "MeshGL.h"
 #include "LightGL.h"
 #include "FrameBufferObjectGL.h"
+#include "ShadowMapGL.h"
 
 class GraphicsGL
 {

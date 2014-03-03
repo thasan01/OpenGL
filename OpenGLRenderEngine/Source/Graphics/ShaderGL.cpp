@@ -351,37 +351,31 @@ ShaderProgramGL::~ShaderProgramGL()
 	  return true;
   }
 
-  void ShaderProgramGL::getInputVariableInfo( vector<string>& variableNameList, 
-											vector<string>& variableTypeList, 
-											vector<unsigned int>& variableLocationList, 
-											vector<int>& variableSize) const
+
+  vector<ShaderVariableTypeGL> ShaderProgramGL::getAttributeVariableInfo() const
   {
 	  unsigned int programID = this->getProgramID();
 	  GLint numAttributes, maxLength;
 	  glGetProgramiv(programID, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxLength);
 	  glGetProgramiv(programID, GL_ACTIVE_ATTRIBUTES, &numAttributes);
 
-
 	  char* name = new char[maxLength];
-	  variableNameList.resize(numAttributes);
-	  variableLocationList.resize(numAttributes);
-	  variableSize.resize(numAttributes);
+	  vector<ShaderVariableTypeGL> variableList(numAttributes);
 
 	  GLsizei nameSize;
 	  GLenum type;
 	  for(int i=0; i<numAttributes; i++)
 	  {
-		glGetActiveAttrib(programID,  i,  maxLength,  &nameSize,  &variableSize[i],  &type,  name);
-		variableNameList[i] = string(name);
-		variableLocationList[i] = glGetAttribLocation(programID, name);
+		glGetActiveAttrib(programID,  i,  maxLength,  &nameSize,  &variableList[i].m_size,  &type,  name);
+		variableList[i].m_name = string(name);
+		variableList[i].m_location = glGetAttribLocation(programID, name);
 	  }
 	  delete name;
+
+	  return variableList;
   }
-  
-  void ShaderProgramGL::getUniformVariableInfo( vector<string>& variableNameList, 
-												vector<string>& variableTypeList,
-												vector<unsigned int>& variableLocationList,
-												vector<int>& variableSize) const
+
+  vector<ShaderVariableTypeGL> ShaderProgramGL::getUniformVariableInfo() const
   {
 	  unsigned int programID = this->getProgramID();
 	  GLint numUniforms, maxLength;
@@ -390,18 +384,16 @@ ShaderProgramGL::~ShaderProgramGL()
 
 
 	  char* name = new char[maxLength];
-	  variableNameList.resize(numUniforms);
-	  variableLocationList.resize(numUniforms);
-	  variableSize.resize(numUniforms);
+	  vector<ShaderVariableTypeGL> variableList(numUniforms);
 
 	  GLsizei nameSize;
 	  GLenum type;
 	  for(int i=0; i<numUniforms; i++)
 	  {
-		glGetActiveUniform(programID,  i,  maxLength,  &nameSize,  &variableSize[i],  &type,  name);
-		variableNameList[i] = string(name);
-		variableLocationList[i] = glGetUniformLocation(programID, name);
+		glGetActiveUniform(programID,  i,  maxLength,  &nameSize,  &variableList[i].m_size,  &type,  name);
+		variableList[i].m_name = string(name);
+		variableList[i].m_location = glGetUniformLocation(programID, name);
 	  }
 	  delete name;
+	  return variableList;
   }
-

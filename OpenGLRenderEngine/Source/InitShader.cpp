@@ -8,6 +8,7 @@ void InitShaders()
 	auto& blurShaderProgram		= shaderProgramList[BLUR_SHADER_ID];
 	auto& combineShaderProgram	= shaderProgramList[COMBINE_SHADER_ID];
 	auto& skinShaderProgram	= shaderProgramList[SKIN_SHADER_ID];
+	auto& shadowShaderProgram	= shaderProgramList[SHADOW_SHADER_ID];
 
 	auto& shaderQuadBlock= shaderBlockList[QUAD_BLOCK_ID];
 
@@ -28,6 +29,7 @@ void InitShaders()
 
 		sceneShaderProgram->bind();
 		sceneShaderProgram->setVariableInteger(sceneShaderProgram->getVariableLocation("textureUnit1"), 0);
+		sceneShaderProgram->setVariableInteger(sceneShaderProgram->getVariableLocation("shadowMap"), 1);
 		sceneShaderInfo = InitShaderInfo(*sceneShaderProgram);
 	}
 
@@ -115,8 +117,35 @@ void InitShaders()
 
 		skinShaderProgram->bind();
 		skinShaderProgram->setVariableInteger(skinShaderProgram->getVariableLocation("textureUnit1"), 0);
+		skinShaderProgram->setVariableInteger(skinShaderProgram->getVariableLocation("shadowMap"), 1);
 		skinShaderInfo = InitShaderInfo(*skinShaderProgram);
 	}
+
+	{ //shadowShaderProgram
+		vector<shared_ptr<ShaderGL>> vertexShaderList;
+		vector<shared_ptr<ShaderGL>> fragmentShaderList;
+		vector<string> attributeNameList;
+		attributeNameList.push_back("in_position");
+		attributeNameList.push_back("in_normal");
+		attributeNameList.push_back("in_textCoord");
+
+		attributeNameList.push_back("in_boneIDs");
+		attributeNameList.push_back("in_weights");
+
+
+
+		vertexShaderList.push_back(graphics.createShader(ShaderGL::VERTEX_SHADER, "../Data/Shader/shadowShader.vert"));
+		fragmentShaderList.push_back(graphics.createShader(ShaderGL::FRAGMENT_SHADER, "../Data/Shader/shadowShader.frag"));
+
+		shadowShaderProgram = graphics.createShaderProgram("shadowShader", attributeNameList, vertexShaderList, fragmentShaderList);
+		shadowShaderProgram->bind();
+
+		OutputShaderError(*shadowShaderProgram);
+		shadowShaderInfo = InitShaderInfo(*shadowShaderProgram);
+
+		shadowShaderProgram->unbind();
+	}
+
 
 	try
 	{
@@ -130,7 +159,7 @@ void InitShaders()
 		thresholdShaderProgram->addShaderBlock(*shaderQuadBlock);
 		blurShaderProgram->addShaderBlock(*shaderQuadBlock);
 		combineShaderProgram->addShaderBlock(*shaderQuadBlock);
-
+		shadowShaderProgram->addShaderBlock(*shaderQuadBlock);
 	}
 	catch(exception& ex)
 	{

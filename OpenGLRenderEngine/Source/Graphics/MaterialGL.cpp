@@ -22,6 +22,7 @@ MaterialGL::MaterialGL(	const string& materialName, const float ambient[], const
 
   void MaterialGL::bind(const SceneShaderInfo& shaderInfo, shared_ptr<ShaderProgramGL>& shaderProgram)
   {
+//*
 	if(m_ptrTexture)
 		m_ptrTexture->bind();
 
@@ -29,12 +30,13 @@ MaterialGL::MaterialGL(	const string& materialName, const float ambient[], const
 	shaderProgram->setVariableVector3f(shaderInfo.m_materialDiffuseLocation, m_diffuse.m_c);
 	shaderProgram->setVariableVector3f(shaderInfo.m_materialSpecularLocation, m_specular.m_c);
 	shaderProgram->setVariableFloat(shaderInfo.m_materialShininessLocation, m_shininess);
+//*/
   }
 
   void MaterialGL::unbind()
   {
-	  if(m_ptrTexture)
-		  m_ptrTexture->unbind();
+//	  if(m_ptrTexture)
+//		  m_ptrTexture->unbind();
   }
 
 

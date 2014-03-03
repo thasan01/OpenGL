@@ -52,6 +52,23 @@ public:
 	const void*		m_source;
 };
 
+class ShaderVariableTypeGL
+{
+	public:
+	ShaderVariableTypeGL() {}
+
+	ShaderVariableTypeGL( string name, string type, unsigned int location, int size)
+		: m_name(name), m_type(type), m_location(location), m_size(size)	
+	{
+	}
+
+
+	string m_name;
+	string m_type;
+
+	unsigned int m_location;
+	int m_size;	
+};
 
 class ShaderBlockGL
 {
@@ -103,11 +120,8 @@ class ShaderProgramGL
 
 	unsigned int getProgramID() const { return m_programID; }
 
-	void getInputVariableInfo(	vector<string>& variableNameList, vector<string>& variableTypeList, 
-								vector<unsigned int>& variableLocationList, vector<int>& variableSize) const;
-
-	void getUniformVariableInfo(vector<string>& variableNameList, vector<string>& variableTypeList, 
-								vector<unsigned int>& variableLocationList, vector<int>& variableSize) const;
+	vector<ShaderVariableTypeGL> getAttributeVariableInfo() const;
+	vector<ShaderVariableTypeGL> getUniformVariableInfo() const;
 
 	void bind();
 	void unbind();

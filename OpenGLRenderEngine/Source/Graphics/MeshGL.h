@@ -168,12 +168,6 @@ struct AnimationComponent;
 		void transformBone(unsigned int boneID, const glm::mat4& parentTransform, const Skeleton& skeleton, const AnimationComponent& animComponent);
 
 		protected:
-/*
-		const string					m_name;
-		vector<unsigned int>			m_matIndexList;
-		vector<VertexArrayObject*>		m_vaoList;
-		vector<shared_ptr<MaterialGL>>	m_materialList; 
-//*/
 		shared_ptr<MeshGL> m_ptrMesh;
 
 		vector<BoneData>		m_bone;

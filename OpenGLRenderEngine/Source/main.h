@@ -1,13 +1,14 @@
 #pragma once
 #include "Globals.h"
 
-#define SHADER_PROGRAM_COUNT 6
+#define SHADER_PROGRAM_COUNT 7
 #define SCENE_SHADER_ID		0
 #define SCREEN_SHADER_ID	1
 #define THRESHOLD_SHADER_ID	2
 #define BLUR_SHADER_ID		3
 #define COMBINE_SHADER_ID	4
 #define SKIN_SHADER_ID		5
+#define SHADOW_SHADER_ID	6
 
 #define SHADER_BLOCK_COUNT	1
 #define QUAD_BLOCK_ID		0
@@ -20,6 +21,7 @@ extern RenderBufferObjectGL* rboList[RENDER_BUFFER_COUNT];
 
 extern SceneShaderInfo skinShaderInfo;
 extern SceneShaderInfo sceneShaderInfo;
+extern SceneShaderInfo shadowShaderInfo;
 
 extern LightGL* ptrLight;
 

@@ -475,53 +475,6 @@ if(glGetError()!=GL_NO_ERROR) throw exception("error");
 	  shared_ptr<VertexBufferObject> ptrBoneVBO( new VertexBufferObject(VertexBufferObject::BONE_BUFFER, boneVertexList.size(), (const DataType)&boneVertexList[0]));
 	  for(unsigned int i=0, size = m_ptrMesh->m_vaoList.size(); i<size; i++)
 		  m_ptrMesh->m_vaoList[i]->addVBO( ptrBoneVBO );
-	  
-
-/*
-		unsigned int maxVertices = meshData.m_vertex.size();
-		unsigned int maxUsedMaterials = meshData.m_matRange.size(); //# of materials actually used by the mesh
-		GraphicsGL& gfx = graphics;
-
-		//load vertex data
-		vector<shared_ptr<VertexBufferObject>> ptrVBOList;
-		ptrVBOList.push_back(shared_ptr<VertexBufferObject>(new VertexBufferObject(VertexBufferObject::VERTEX_BUFFER, meshData.m_vertex.size(), (const DataType)&meshData.m_vertex[0])));
-		ptrVBOList.push_back(shared_ptr<VertexBufferObject>(new VertexBufferObject(VertexBufferObject::NORMAL_BUFFER, meshData.m_normal.size(), (const DataType)&meshData.m_normal[0])));
-		ptrVBOList.push_back(shared_ptr<VertexBufferObject>(new VertexBufferObject(VertexBufferObject::TEXTCOORD_BUFFER, meshData.m_textCoord.size(), (const DataType)&meshData.m_textCoord[0])));
-		ptrVBOList.push_back(shared_ptr<VertexBufferObject>(new VertexBufferObject(VertexBufferObject::BONE_BUFFER, boneVertexList.size(), (const DataType)&boneVertexList[0])));
-
-		//load triangle face data
-		m_vaoList.reserve(maxUsedMaterials);
-		unsigned int pos=0; 
-		for(unsigned int i=0; i<maxUsedMaterials; i++)
-		{
-			shared_ptr<IndexBufferObject> ptrIBO( new IndexBufferObject(meshData.m_matRange[i], &meshData.m_triIndex[pos]) );	
-			pos += meshData.m_matRange[i];
-
-			//create a VertexArrayObject for each material
-			m_vaoList.push_back( new VertexArrayObject(ptrVBOList, ptrIBO) );
-		}
-
-		//create the materials from materialDataList
-		m_materialList.reserve(maxUsedMaterials); 
-		m_matIndexList.reserve(maxUsedMaterials);
-		for(unsigned int i=0; i<maxUsedMaterials; i++)
-		{
-			const MaterialData& materialData = materialDataList[meshData.m_matIndexID[i]];
-			shared_ptr<TextureGL> ptrTexture;
-
-			if(!materialData.m_textureList.empty())
-			{
-				const string& filename = materialData.m_textureList[0].m_filename;
-				ptrTexture = gfx.createTexture(filename);
-			}
-
-			shared_ptr<MaterialGL> materialPtr = gfx.createMaterial(materialData.m_name, materialData.m_ambient.m_c, materialData.m_diffuse.m_c, 
-													materialData.m_specular.m_c, materialData.m_shininess, ptrTexture);
-
-			m_materialList.push_back( materialPtr );
-			m_matIndexList.push_back( i );
-		}
-//*/
   }
 
   AnimatedMeshGL::~AnimatedMeshGL()
